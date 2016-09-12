@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Input;
 using System.Drawing.Drawing2D;
 using Microsoft.FSharp.Core;
 
@@ -27,8 +28,7 @@ namespace Ploter
 
         private void Begin()
         {
-            cam = new Camera(new PointF(0f, min), new PointF(points.Count, max), points);
-            cam.detectPointsToDraw();
+            cam = new Camera(new PointF(0f, min), new PointF(points.Count, max), points);            
 
             m = new Matrix();
 
@@ -38,6 +38,10 @@ namespace Ploter
 
             //resizing for camera size
             m.Scale(ClientSize.Width / cam.width, ClientSize.Height / cam.height);
+
+            Form1_MouseWheel(this, new MouseEventArgs(MouseButtons.None, 0, ClientSize.Width / 2, ClientSize.Height / 2, -1));
+
+            cam.detectPointsToDraw();
         }
 
         private void Form1_MouseWheel(object sender, MouseEventArgs e)
@@ -55,7 +59,11 @@ namespace Ploter
             m.Scale(kx, ky);
             m.Translate(-po.X, -po.Y);
 
-            cam.MoveTo(DataPoint(new PointF(0f, 0f)), DataPoint(new PointF(ClientSize.Width, ClientSize.Height)));
+            PointF newlp = DataPoint(new PointF(0f, 0f));
+            PointF newrp = DataPoint(new PointF(ClientSize.Width, ClientSize.Height));
+
+            //cam.detectByOffset(cam.leftP.X - newlp.X, cam.rightP.X - newrp.X);
+            cam.MoveTo(newlp, newrp);            
             cam.detectPointsToDraw();
 
             Invalidate();
@@ -101,6 +109,8 @@ namespace Ploter
                 m.Elements.Select(a => a.ToString() + "\n").Aggregate((a,b)=>a+b),
                 this.Font, Brushes.Red, 50, 50
                 );
+            
+
             g.Transform = m;
 
             if (cam.toDraw.Count == 0) return; 
@@ -108,15 +118,17 @@ namespace Ploter
             List<PointF> toDraw = new List<PointF>();
             int step = (int)Math.Ceiling((double)(cam.toDraw.Count / ClientSize.Width));
             if (step == 0) step = 1;
-            Text = cam.toDraw.Count.ToString() + "/" + ClientSize.Width.ToString() + " = " + step.ToString();
+            //Text = cam.toDraw.Count.ToString() + "/" + ClientSize.Width.ToString() + " = " + step.ToString();
+
+            g.DrawLine(Pens.Black, -points.Count*0.2f, 0, points.Count * 2, 0);
+            g.DrawLine(Pens.Black, 0, -max*0.2f, 0, max * 2);            
 
             for (int i = 0; i < cam.toDraw.Count-step; i += step)
             {
                 toDraw.Add(points[cam.toDraw[i]]);
-                toDraw.Add(new PointF(points[cam.toDraw[i+1]].X, points[cam.toDraw[i]].Y));
+                //toDraw.Add(new PointF(points[cam.toDraw[i+1]].X, points[cam.toDraw[i]].Y));
             }
                 
-
             g.DrawLines(myPen, toDraw.ToArray());            
         }
 
@@ -126,7 +138,7 @@ namespace Ploter
             float dy = 0f;
 
             float deltaX = 10;
-            float deltaY = 50000;
+            float deltaY = 500;
             switch (e.KeyCode)
             {
                 case Keys.Left:
@@ -158,13 +170,14 @@ namespace Ploter
             }
             cam.Move(dx, dy);
             m.Translate(-dx, -dy);
-            cam.detectPointsToDraw();
+            cam.detectByOffset(dx);
+            //cam.detectPointsToDraw();
             Invalidate();
         }
 
         private void Form1_MouseMove(object sender, MouseEventArgs e)
         {
-            //Text = cam.offsetX.ToString() + " " + cam.offsetY.ToString();
+            Text = DataPoint(e.Location).ToString();//cam.offsetX.ToString() + " " + cam.offsetY.ToString();
         }
 
         private void Form1_ResizeEnd(object sender, EventArgs e)
