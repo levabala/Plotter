@@ -33,7 +33,7 @@ namespace Ploter
             InitializeComponent();                        
             MouseWheel += Form1_MouseWheel;
 
-            wheelEndTimer.Interval = 500; 
+            wheelEndTimer.Interval = 200; 
             wheelEndTimer.Tick += WheelEndTimer_Tick;
 
             //props            
