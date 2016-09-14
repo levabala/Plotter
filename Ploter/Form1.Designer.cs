@@ -28,13 +28,37 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.SmoothingCheckBox = new System.Windows.Forms.CheckBox();
+            this.groupBox1.SuspendLayout();
             this.SuspendLayout();
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.SmoothingCheckBox);
+            this.groupBox1.Location = new System.Drawing.Point(13, 13);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(171, 231);
+            this.groupBox1.TabIndex = 0;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "groupBox1";
+            // 
+            // SmoothingCheckBox
+            // 
+            this.SmoothingCheckBox.AutoSize = true;
+            this.SmoothingCheckBox.Location = new System.Drawing.Point(7, 22);
+            this.SmoothingCheckBox.Name = "SmoothingCheckBox";
+            this.SmoothingCheckBox.Size = new System.Drawing.Size(157, 21);
+            this.SmoothingCheckBox.TabIndex = 0;
+            this.SmoothingCheckBox.Text = "Smoothing(BUGGY)";
+            this.SmoothingCheckBox.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(702, 425);
+            this.ClientSize = new System.Drawing.Size(651, 384);
+            this.Controls.Add(this.groupBox1);
             this.DoubleBuffered = true;
             this.Name = "Form1";
             this.Text = "Form1";
@@ -45,11 +69,17 @@
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.Form1_Paint);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyDown);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseMove);
+            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseUp);
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
 
         }
 
         #endregion
+
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.CheckBox SmoothingCheckBox;
     }
 }
 

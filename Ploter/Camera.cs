@@ -11,7 +11,8 @@ namespace Ploter
     {
         public PointF leftP, rightP;        
         public List<int> toDraw = new List<int>();
-        public float width, height, offsetX, offsetY;
+        public float width, height, offsetX, offsetY, drawW, drawH;
+        public int detectStep;
         List<PointF> points;
         private Object mylock = new Object();
 
@@ -19,26 +20,33 @@ namespace Ploter
 
         const float buffer = 20f;
 
-        public Camera(PointF lp, PointF rp, List<PointF> ps)
+        public Camera(PointF lp, PointF rp, List<PointF> ps, int detectstep)
         {
             leftP = lp;
             rightP = rp;
             width = rightP.X - leftP.X;
             height = rightP.Y - leftP.Y;
+            detectStep = detectstep;
+            if (detectStep <= 0) detectStep = 1;
+
+            drawW = 1;
+            drawH = 1;
 
             points = ps;
         }
 
         public void detectPointsToDraw()
-        {
-            int index = 0;
+        {            
             toDraw.Clear();
-            
-            foreach (PointF p in points)
+            int step = (int)(points.Count / drawW);
+            if (step <= 0) step = 1;
+            if (step > detectStep) step = detectStep;
+
+            for (int i = 0; i < points.Count; i += step)
             {
-                if (p.X >= leftP.X - buffer && p.X <= rightP.X + buffer) toDraw.Add(index);
-                index++;
-            }                
+                PointF p = points[i];
+                if (p.X >= leftP.X - buffer && p.X <= rightP.X + buffer) toDraw.Add(i);                
+            }                            
         }
 
         public void detectByOffset(float dx)

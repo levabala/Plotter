@@ -19,16 +19,54 @@ namespace Ploter
         Matrix m;
         List<PointF> points = new List<PointF>();
         const float bufferPerc = 0.01f; //buffer in percentage       
-        float max, min;
+        float max = 0f;
+        float min = 0f;
+        Timer wheelEndTimer = new Timer();
+
+        //properties
+        bool smoothing = false;
+
         public Form1()
         {
+            cam = new Camera(new PointF(0f, min), new PointF(points.Count, max), points, 1);
+
             InitializeComponent();                        
-            MouseWheel += Form1_MouseWheel;            
+            MouseWheel += Form1_MouseWheel;
+
+            wheelEndTimer.Interval = 500; 
+            wheelEndTimer.Tick += WheelEndTimer_Tick;
+
+            //props            
+            smoothing = SmoothingCheckBox.Checked;
+            SmoothingCheckBox.CheckedChanged += SmoothingCheckBox_CheckedChanged;
+        }
+
+        private void SmoothingCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            smoothing = SmoothingCheckBox.Checked;
+            GetToDrawPoints();
+            Invalidate();
+        }
+
+        private void WheelEndTimer_Tick(object sender, EventArgs e)
+        {
+            wheelEndTimer.Stop();
+
+            PointF newlp = DataPoint(new PointF(0f, 0f));
+            PointF newrp = DataPoint(new PointF(ClientSize.Width, ClientSize.Height));
+
+            cam.detectStep = points.Count / ClientSize.Width;
+            cam.MoveTo(newlp, newrp);
+            cam.detectPointsToDraw();
+
+            GetToDrawPoints();
+
+            Invalidate();        
         }
 
         private void Begin()
         {
-            cam = new Camera(new PointF(0f, min), new PointF(points.Count, max), points);            
+            cam = new Camera(new PointF(0f, min), new PointF(points.Count, max), points, points.Count / ClientSize.Width);            
 
             m = new Matrix();
 
@@ -41,11 +79,13 @@ namespace Ploter
 
             Form1_MouseWheel(this, new MouseEventArgs(MouseButtons.None, 0, ClientSize.Width / 2, ClientSize.Height / 2, -1));
 
+            cam.drawW = DataPoint(new PointF(cam.rightP.X - cam.leftP.X, 0f)).X;
+            cam.drawH = ClientSize.Height * m.Elements[4];
             cam.detectPointsToDraw();
         }
 
         private void Form1_MouseWheel(object sender, MouseEventArgs e)
-        {            
+        {
             PointF pos = DataPoint(e.Location);
             bool inXscale = e.Location.Y < 50;
             bool inYscale = e.Location.X < 50;
@@ -59,17 +99,17 @@ namespace Ploter
             m.Scale(kx, ky);
             m.Translate(-po.X, -po.Y);
 
-            PointF newlp = DataPoint(new PointF(0f, 0f));
-            PointF newrp = DataPoint(new PointF(ClientSize.Width, ClientSize.Height));
+            cam.drawW = DataPoint(cam.rightP).X - DataPoint(cam.leftP).X;
+            cam.drawH = ClientSize.Height * m.Elements[4];
 
-            //cam.detectByOffset(cam.leftP.X - newlp.X, cam.rightP.X - newrp.X);
-            cam.MoveTo(newlp, newrp);            
-            cam.detectPointsToDraw();
-
+            GetToDrawPoints();
             Invalidate();
+
+            wheelEndTimer.Stop();
+            wheelEndTimer.Start();
         }
 
-        private PointF DataPoint(PointF scr)
+        public PointF DataPoint(PointF scr)
         {
             Matrix mr = m.Clone();
             mr.Invert();
@@ -84,7 +124,7 @@ namespace Ploter
             max = 0f;
             min = F5[1] - F5[0];
             float cr = 0f;
-            for (int i = 1; i < F5.Length / 2; i += 2)
+            for (int i = 1; i < F5.Length; i += 2)
             {
                 //deltaF5[i / 2] = F5[i] - F5[i - 1];
                 cr = F5[i] - F5[i - 1];
@@ -96,7 +136,36 @@ namespace Ploter
                 }
             }
             Begin();
+            GetToDrawPoints();
             Invalidate();
+        }
+
+        List<PointF> toDraw = new List<PointF>();
+        const float compCoeff = 1;
+        private void GetToDrawPoints()
+        {
+            toDraw.Clear();
+            int step = (int)Math.Ceiling((double)(cam.toDraw.Count / ClientSize.Width * compCoeff));
+            if (step == 0) step = 1;
+            //Text = "toDraw.Count = "+cam.toDraw.Count.ToString()+ " step = " + step + " drawed = " + (cam.toDraw.Count / step).ToString();
+
+            float currSum = 0;
+            for (int i = 0; i < cam.toDraw.Count - step; i += step)
+            {
+                if (!smoothing)
+                {
+                    toDraw.Add(points[cam.toDraw[i]]);
+                }
+                else
+                {
+                    currSum = 0;
+                    for (int a = i; a < i + step; a++)
+                        currSum += points[cam.toDraw[a]].Y;
+                    currSum /= step;
+                    toDraw.Add(new PointF(currSum,points[cam.toDraw[i]].X));
+                }                
+                //toDraw.Add(new PointF(points[cam.toDraw[i+1]].X, points[cam.toDraw[i]].Y));
+            }
         }
 
         Pen myPen = new Pen(Color.Green, 1);        
@@ -109,25 +178,12 @@ namespace Ploter
                 m.Elements.Select(a => a.ToString() + "\n").Aggregate((a,b)=>a+b),
                 this.Font, Brushes.Red, 50, 50
                 );
-            
 
             g.Transform = m;
 
-            if (cam.toDraw.Count == 0) return; 
-
-            List<PointF> toDraw = new List<PointF>();
-            int step = (int)Math.Ceiling((double)(cam.toDraw.Count / ClientSize.Width));
-            if (step == 0) step = 1;
-            //Text = cam.toDraw.Count.ToString() + "/" + ClientSize.Width.ToString() + " = " + step.ToString();
-
-            g.DrawLine(Pens.Black, -points.Count*0.2f, 0, points.Count * 2, 0);
-            g.DrawLine(Pens.Black, 0, -max*0.2f, 0, max * 2);            
-
-            for (int i = 0; i < cam.toDraw.Count-step; i += step)
-            {
-                toDraw.Add(points[cam.toDraw[i]]);
-                //toDraw.Add(new PointF(points[cam.toDraw[i+1]].X, points[cam.toDraw[i]].Y));
-            }
+            if (toDraw.Count == 0) return;
+            g.DrawLine(Pens.Black, -points.Count * 0.2f, 0, points.Count * 2, 0);
+            g.DrawLine(Pens.Black, 0, -max * 0.2f, 0, max * 2);
                 
             g.DrawLines(myPen, toDraw.ToArray());            
         }
@@ -172,12 +228,27 @@ namespace Ploter
             m.Translate(-dx, -dy);
             cam.detectByOffset(dx);
             //cam.detectPointsToDraw();
+            GetToDrawPoints();
             Invalidate();
         }
 
+        PointF lastmousepos = new PointF(0f, 0f);        
         private void Form1_MouseMove(object sender, MouseEventArgs e)
         {
-            Text = DataPoint(e.Location).ToString();//cam.offsetX.ToString() + " " + cam.offsetY.ToString();
+            // DataPoint(e.Location).ToString();//cam.offsetX.ToString() + " " + cam.offsetY.ToString();
+            //Text = cam.width.ToString();
+            if (e.Button == MouseButtons.Left)
+            {
+                float dx = DataPoint(lastmousepos).X - DataPoint(e.Location).X;
+                float dy = DataPoint(lastmousepos).Y - DataPoint(e.Location).Y;
+
+                //dx.ToString() + " " + dy.ToString();
+
+                cam.Move(dx, dy);
+                m.Translate(-dx, -dy);
+                Invalidate();
+            }
+            lastmousepos = e.Location;
         }
 
         private void Form1_ResizeEnd(object sender, EventArgs e)
@@ -192,7 +263,17 @@ namespace Ploter
             m.Scale(ClientSize.Width / cam.width, ClientSize.Height / cam.height);
 
             m.Translate(-cam.offsetX, -cam.offsetY);*/
+            GetToDrawPoints();
+            Invalidate();
+        }
 
+        private void Form1_MouseUp(object sender, MouseEventArgs e)
+        {
+            PointF newlp = DataPoint(new PointF(0f, 0f));
+            PointF newrp = DataPoint(new PointF(ClientSize.Width, ClientSize.Height));
+            
+            cam.MoveTo(newlp, newrp);
+            GetToDrawPoints();
             Invalidate();
         }
     }
