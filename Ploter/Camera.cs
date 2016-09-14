@@ -45,7 +45,7 @@ namespace Ploter
             for (int i = 0; i < points.Count; i += step)
             {
                 PointF p = points[i];
-                if (p.X >= leftP.X - buffer && p.X <= rightP.X + buffer) toDraw.Add(i);                
+                if (p.X >= leftP.X - buffer && p.X <= rightP.X + buffer) toDraw.Add(i);  //asddasd               
             }                            
         }
 
