@@ -156,23 +156,23 @@ namespace Ploter
             {
                 //deltaF5[i / 2] = F5[i] - F5[i - 1];
                 cr = F5[i] - F5[i - 1];
-                if (cr < 10000)                                 //for debug
-                {
+                //if (cr < 10000)                                 //for debug
+                //{
                     points.Add(new PointF((i - 1) / 2, cr));
                     if (cr > max) max = cr;
                     else if (cr < min) min = cr;
-                }
+                //}
             }
             Begin();
             GetToDrawPoints();
             Invalidate();
         }
 
-        List<PointF> toDraw = new List<PointF>();
+        PointF[] toDrawArr;
         const float compCoeff = 1;
         private void GetToDrawPoints()
         {
-            toDraw.Clear();
+            List<PointF> toDraw = new List<PointF>();
             int step = (int)Math.Ceiling((double)(cam.toDraw.Count / ClientSize.Width * compCoeff));
             if (step == 0) step = 1;
             //Text = "toDraw.Count = "+cam.toDraw.Count.ToString()+ " step = " + step + " drawed = " + (cam.toDraw.Count / step).ToString();
@@ -194,6 +194,7 @@ namespace Ploter
                 }                
                 //toDraw.Add(new PointF(points[cam.toDraw[i+1]].X, points[cam.toDraw[i]].Y));
             }
+            toDrawArr = toDraw.ToArray();
         }
 
         Pen myPen = new Pen(Color.Green, 1);        
@@ -201,19 +202,25 @@ namespace Ploter
         {
             //Text = cam.ToString();            
             myPen.LineJoin = LineJoin.Bevel;
-            Graphics g = e.Graphics;            
+            Graphics g = e.Graphics;
+            g.Clear(Color.White);      
             g.DrawString(
                 m.Elements.Select(a => a.ToString() + "\n").Aggregate((a,b)=>a+b),
                 this.Font, Brushes.Red, 50, 50
                 );
 
+            for (float w = ClientSize.Width / 10; w < ClientSize.Width; w += ClientSize.Width / 10)
+                g.DrawString(Math.Round(DataPoint(new PointF(w, 0)).Y, 2).ToString(), Font, Brushes.Black, new PointF(w, ClientSize.Height - 20));
+            for (float h = ClientSize.Height / 10; h < ClientSize.Height; h += ClientSize.Height / 10)
+                g.DrawString(Math.Round(DataPoint(new PointF(0,h)).Y, 2).ToString(), Font, Brushes.Black, new PointF(10, h));
+
             g.Transform = m;
 
-            if (toDraw.Count == 0) return;
-            g.DrawLine(Pens.Black, -points.Count * 0.2f, 0, points.Count * 2, 0);
-            g.DrawLine(Pens.Black, 0, -max * 0.2f, 0, max * 2);
+            if (toDrawArr.Length == 0) return;
+            //g.DrawLine(Pens.Black, -points.Count * 0.2f, 0, points.Count * 2, 0);
+            //g.DrawLine(Pens.Black, 0, -max * 0.2f, 0, max);
                 
-            g.DrawLines(myPen, toDraw.ToArray());            
+            g.DrawLines(myPen, toDrawArr);                       
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
@@ -263,7 +270,7 @@ namespace Ploter
         PointF lastmousepos = new PointF(0f, 0f);        
         private void Form1_MouseMove(object sender, MouseEventArgs e)
         {
-            // DataPoint(e.Location).ToString();//cam.offsetX.ToString() + " " + cam.offsetY.ToString();
+            Text = DataPoint(e.Location).ToString();//cam.offsetX.ToString() + " " + cam.offsetY.ToString();
             //Text = cam.width.ToString();
             if (e.Button == MouseButtons.Left)
             {

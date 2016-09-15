@@ -49,12 +49,15 @@ namespace Ploter
                     PointF p = points[i];
                     if (p.X >= leftP.X - buffer && p.X <= rightP.X + buffer) toDraw.Add(i);
                 }                 
-            else            
-                for (int i = (leftP.X - buffer < 0) ? 0 : (int)leftP.X - (int)buffer; i < ((((int)rightP.X + (int)buffer) > points.Count) ? points.Count : rightP.X + (int)buffer); i++)
+            else
+            {
+                int top = (((int)rightP.X + (int)buffer) > points.Count) ? points.Count : (int)rightP.X + (int)buffer;
+                for (int i = (leftP.X - buffer < 0) ? 0 : (int)leftP.X - (int)buffer; i < top; i++)
                 {
                     PointF p = points[i];
                     toDraw.Add(i);
                 }
+            }                           
         }
 
         public void detectByOffset(float dx)
