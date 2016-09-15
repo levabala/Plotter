@@ -110,7 +110,7 @@ namespace Ploter
             cam.drawW = DataPoint(new PointF(cam.rightP.X - cam.leftP.X, 0f)).X;
             cam.drawH = ClientSize.Height * m.Elements[4];
             cam.detectPointsToDraw();
-        }
+        }        
 
         private void Form1_MouseWheel(object sender, MouseEventArgs e)
         {
@@ -210,7 +210,7 @@ namespace Ploter
                 );
 
             for (float w = ClientSize.Width / 10; w < ClientSize.Width; w += ClientSize.Width / 10)
-                g.DrawString(Math.Round(DataPoint(new PointF(w, 0)).Y, 2).ToString(), Font, Brushes.Black, new PointF(w, ClientSize.Height - 20));
+                g.DrawString(Math.Round(DataPoint(new PointF(w, 0)).X, 2).ToString(), Font, Brushes.Black, new PointF(w, ClientSize.Height - 20));
             for (float h = ClientSize.Height / 10; h < ClientSize.Height; h += ClientSize.Height / 10)
                 g.DrawString(Math.Round(DataPoint(new PointF(0,h)).Y, 2).ToString(), Font, Brushes.Black, new PointF(10, h));
 
@@ -254,8 +254,20 @@ namespace Ploter
                     }
                 case Keys.R:
                     {
-                        Begin();
-                        Invalidate();
+                        m = new Matrix();
+                        //invert axis Y
+                        m.Scale(1, -1);
+                        m.Translate(0, -ClientSize.Height);
+
+                        //resizing for camera size
+                        m.Scale(ClientSize.Width / cam.width, ClientSize.Height / cam.height);
+
+                        Form1_MouseWheel(this, new MouseEventArgs(MouseButtons.None, 0, ClientSize.Width / 2, ClientSize.Height / 2, -1));
+                    
+
+                        cam.drawW = DataPoint(new PointF(cam.rightP.X - cam.leftP.X, 0f)).X;
+                        cam.drawH = ClientSize.Height * m.Elements[4];
+                        cam.detectPointsToDraw();                        
                         break;
                     }
             }
