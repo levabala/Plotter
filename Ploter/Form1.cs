@@ -26,10 +26,12 @@ namespace Ploter
 
         //properties
         bool smoothing = false;
+        bool onebyone = true;
 
         public Form1()
         {
             cam = new Camera(new PointF(0f, min), new PointF(points.Count, max), points, 1);
+            cam.onebyoneMode = onebyone;
 
             InitializeComponent();                        
             MouseWheel += Form1_MouseWheel;
@@ -39,7 +41,17 @@ namespace Ploter
 
             //props            
             smoothing = SmoothingCheckBox.Checked;
+            onebyone = OneByOneCheckBox.Checked;
             SmoothingCheckBox.CheckedChanged += SmoothingCheckBox_CheckedChanged;
+            OneByOneCheckBox.CheckedChanged += OneByOneCheckBox_CheckedChanged;
+        }
+
+        private void OneByOneCheckBox_CheckedChanged(object sender, EventArgs e)
+        {
+            onebyone = OneByOneCheckBox.Checked;
+            cam.detectPointsToDraw();
+            GetToDrawPoints();
+            Invalidate();
         }
 
         private void SmoothingCheckBox_CheckedChanged(object sender, EventArgs e)
@@ -67,7 +79,8 @@ namespace Ploter
 
         private void Begin()
         {
-            cam = new Camera(new PointF(0f, min), new PointF(points.Count, max), points, points.Count / ClientSize.Width);            
+            cam = new Camera(new PointF(0f, min), new PointF(points.Count, max), points, points.Count / ClientSize.Width);
+            cam.onebyoneMode = onebyone;
 
             m = new Matrix();
 
@@ -177,7 +190,7 @@ namespace Ploter
                     for (int a = i; a < i + step; a++)
                         currSum += points[cam.toDraw[a]].Y;
                     currSum /= step;
-                    toDraw.Add(new PointF(currSum,points[cam.toDraw[i]].X));
+                    toDraw.Add(new PointF(points[cam.toDraw[i]].X + step / 2, currSum));
                 }                
                 //toDraw.Add(new PointF(points[cam.toDraw[i+1]].X, points[cam.toDraw[i]].Y));
             }

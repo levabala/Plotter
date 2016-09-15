@@ -30,11 +30,13 @@
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.SmoothingCheckBox = new System.Windows.Forms.CheckBox();
+            this.OneByOneCheckBox = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.OneByOneCheckBox);
             this.groupBox1.Controls.Add(this.SmoothingCheckBox);
             this.groupBox1.Location = new System.Drawing.Point(13, 13);
             this.groupBox1.Name = "groupBox1";
@@ -52,6 +54,18 @@
             this.SmoothingCheckBox.TabIndex = 0;
             this.SmoothingCheckBox.Text = "Smoothing(BUGGY)";
             this.SmoothingCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // OneByOneCheckBox
+            // 
+            this.OneByOneCheckBox.AutoSize = true;
+            this.OneByOneCheckBox.Checked = true;
+            this.OneByOneCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.OneByOneCheckBox.Location = new System.Drawing.Point(7, 50);
+            this.OneByOneCheckBox.Name = "OneByOneCheckBox";
+            this.OneByOneCheckBox.Size = new System.Drawing.Size(135, 21);
+            this.OneByOneCheckBox.TabIndex = 1;
+            this.OneByOneCheckBox.Text = "OneByOneMode";
+            this.OneByOneCheckBox.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -81,6 +95,7 @@
 
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.CheckBox SmoothingCheckBox;
+        private System.Windows.Forms.CheckBox OneByOneCheckBox;
     }
 }
 

@@ -13,6 +13,7 @@ namespace Ploter
         public List<int> toDraw = new List<int>();
         public float width, height, offsetX, offsetY, drawW, drawH;
         public int detectStep;
+        public bool onebyoneMode = false;
         List<PointF> points;
         private Object mylock = new Object();
 
@@ -38,15 +39,22 @@ namespace Ploter
         public void detectPointsToDraw()
         {            
             toDraw.Clear();
-            int step = (int)(points.Count / drawW);
+            int step = (int)(points.Count / width);
             if (step <= 0) step = 1;
             if (step > detectStep) step = detectStep;
 
-            for (int i = 0; i < points.Count; i += step)
-            {
-                PointF p = points[i];
-                if (p.X >= leftP.X - buffer && p.X <= rightP.X + buffer) toDraw.Add(i);  //asddasd               
-            }                            
+            if (!onebyoneMode)
+                for (int i = 0; i < points.Count; i += step)
+                {
+                    PointF p = points[i];
+                    if (p.X >= leftP.X - buffer && p.X <= rightP.X + buffer) toDraw.Add(i);
+                }                 
+            else            
+                for (int i = (leftP.X - buffer < 0) ? 0 : (int)leftP.X - (int)buffer; i < ((((int)rightP.X + (int)buffer) > points.Count) ? points.Count : rightP.X + (int)buffer); i++)
+                {
+                    PointF p = points[i];
+                    toDraw.Add(i);
+                }
         }
 
         public void detectByOffset(float dx)
