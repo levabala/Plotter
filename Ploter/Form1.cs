@@ -22,6 +22,7 @@ namespace Ploter
         float max = 0f;
         float min = 0f;
         Timer wheelEndTimer = new Timer();
+        string PLOTTER_TRANSFORM_REGKEY = "plotter_tranform";
 
         //properties
         bool smoothing = false;
@@ -70,14 +71,28 @@ namespace Ploter
 
             m = new Matrix();
 
-            //invert axis Y
-            m.Scale(1, -1);
-            m.Translate(0, -ClientSize.Height);
+            try
+            {                
+                string ms = (string)Microsoft.Win32.Registry.CurrentUser.GetValue(PLOTTER_TRANSFORM_REGKEY);
+                string[] mv = ms.Split(' ');
+                float[] mf = mv.Select(a => float.Parse(a)).ToArray();
+                m = new Matrix(mf[0], mf[1], mf[2], mf[3], mf[4], mf[5]);
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show("Error with martix loading", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-            //resizing for camera size
-            m.Scale(ClientSize.Width / cam.width, ClientSize.Height / cam.height);
+                m = new Matrix();
+                //invert axis Y
+                m.Scale(1, -1);
+                m.Translate(0, -ClientSize.Height);
 
-            Form1_MouseWheel(this, new MouseEventArgs(MouseButtons.None, 0, ClientSize.Width / 2, ClientSize.Height / 2, -1));
+                //resizing for camera size
+                m.Scale(ClientSize.Width / cam.width, ClientSize.Height / cam.height);
+
+                Form1_MouseWheel(this, new MouseEventArgs(MouseButtons.None, 0, ClientSize.Width / 2, ClientSize.Height / 2, -1));
+            }            
 
             cam.drawW = DataPoint(new PointF(cam.rightP.X - cam.leftP.X, 0f)).X;
             cam.drawH = ClientSize.Height * m.Elements[4];
@@ -244,7 +259,7 @@ namespace Ploter
 
                 //dx.ToString() + " " + dy.ToString();
 
-                cam.Move(dx, dy);
+                cam.Move(dx, dy);                
                 m.Translate(-dx, -dy);
                 Invalidate();
             }
@@ -269,12 +284,30 @@ namespace Ploter
 
         private void Form1_MouseUp(object sender, MouseEventArgs e)
         {
+            if (e.Button == MouseButtons.Left)
+                updateCameraPos();
+        }
+
+        private void updateCameraPos()
+        {
             PointF newlp = DataPoint(new PointF(0f, 0f));
             PointF newrp = DataPoint(new PointF(ClientSize.Width, ClientSize.Height));
-            
+
             cam.MoveTo(newlp, newrp);
+            cam.detectPointsToDraw();
             GetToDrawPoints();
             Invalidate();
+        }
+
+        string matrixToString(Matrix m)
+        {
+            return
+                m.Elements.Select(a => a.ToString()).Aggregate((a, b) => a + " " + b);
+        }
+
+        private void Form1_FormClosing_1(object sender, FormClosingEventArgs e)
+        {
+            Microsoft.Win32.Registry.CurrentUser.SetValue(PLOTTER_TRANSFORM_REGKEY, matrixToString(m));
         }
     }
 }
