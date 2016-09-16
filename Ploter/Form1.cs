@@ -40,15 +40,15 @@ namespace Ploter
             wheelEndTimer.Tick += WheelEndTimer_Tick;
 
             //props            
-            smoothing = SmoothingCheckBox.Checked;
-            onebyone = OneByOneCheckBox.Checked;
-            SmoothingCheckBox.CheckedChanged += SmoothingCheckBox_CheckedChanged;
-            OneByOneCheckBox.CheckedChanged += OneByOneCheckBox_CheckedChanged;
+            //smoothing = SmoothingCheckBox.Checked;
+            //onebyone = OneByOneCheckBox.Checked;
+            //SmoothingCheckBox.CheckedChanged += SmoothingCheckBox_CheckedChanged;
+            //OneByOneCheckBox.CheckedChanged += OneByOneCheckBox_CheckedChanged;
         }
 
         private void OneByOneCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-            onebyone = OneByOneCheckBox.Checked;
+            //onebyone = OneByOneCheckBox.Checked;
             cam.detectPointsToDraw();
             GetToDrawPoints();
             Invalidate();
@@ -56,7 +56,7 @@ namespace Ploter
 
         private void SmoothingCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-            smoothing = SmoothingCheckBox.Checked;
+            //smoothing = SmoothingCheckBox.Checked;
             GetToDrawPoints();
             Invalidate();
         }
@@ -145,26 +145,46 @@ namespace Ploter
             mr.TransformPoints(po);
             return po[0];
         }
+		public PointF ScreenPoint(PointF scr)
+		{
+			Matrix mr = m.Clone();
+			//mr.Invert();
+			PointF[] po = new PointF[] { new PointF(scr.X, scr.Y) };
+			mr.TransformPoints(po);
+			return po[0];
+		}
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            Int64[] F5 = Parser.parseLM(@"D:\work\test_6000_fast.raw", 242);
+			string data_source = @"D:\work\test_6000_fast.raw";
+
+			string[] args = Environment.GetCommandLineArgs();
+			if (args.Length > 0 && System.IO.File.Exists(args[1])) data_source = args[1];
+
+            Int64[] F5 = Parser.parseLM(data_source, 242);
+
             max = 0f;
             min = F5[1] - F5[0];
             float cr = 0f;
-            for (int i = 1; i < F5.Length; i += 2)
+            for (int i = 1; i < F5.Length; i += 1)
             {
                 //deltaF5[i / 2] = F5[i] - F5[i - 1];
-                cr = F5[i] - F5[i - 1];
+                cr = (float)(60.0/((F5[i] - F5[i - 1])*1024*16e-9));
+				float tt = (float)(F5[i] * 16e-9);
                 //if (cr < 10000)                                 //for debug
                 //{
-                    points.Add(new PointF((i - 1) / 2, cr));
+                    //points.Add(new PointF((i - 1) , cr));
+					points.Add(new PointF(i, cr));
                     if (cr > max) max = cr;
                     else if (cr < min) min = cr;
                 //}
             }
             Begin();
             GetToDrawPoints();
+
+			xGridPen.DashPattern = new float[] { 1, 5, 1 };
+			yGridPen.DashPattern = new float[] { 1, 5, 1 };			
+
             Invalidate();
         }
 
@@ -173,7 +193,8 @@ namespace Ploter
         private void GetToDrawPoints()
         {
             List<PointF> toDraw = new List<PointF>();
-            int step = (int)Math.Ceiling((double)(cam.toDraw.Count / ClientSize.Width * compCoeff));
+			Rectangle r = ClientRectangle;
+            int step = (int)Math.Ceiling((double)(cam.toDraw.Count / r.Width * compCoeff));
             if (step == 0) step = 1;
             //Text = "toDraw.Count = "+cam.toDraw.Count.ToString()+ " step = " + step + " drawed = " + (cam.toDraw.Count / step).ToString();
 
@@ -197,7 +218,10 @@ namespace Ploter
             toDrawArr = toDraw.ToArray();
         }
 
-        Pen myPen = new Pen(Color.Green, 1);        
+        Pen myPen = new Pen(Color.Green, 1);
+		Font smallFont = new Font("Arial Narrow", 8);
+		Pen xGridPen = new Pen(Brushes.Blue, 1);
+		Pen yGridPen = new Pen(Brushes.Green, 1);
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
             //Text = cam.ToString();            
@@ -209,10 +233,57 @@ namespace Ploter
                 this.Font, Brushes.Red, 50, 50
                 );
 
+			/*
             for (float w = ClientSize.Width / 10; w < ClientSize.Width; w += ClientSize.Width / 10)
                 g.DrawString(Math.Round(DataPoint(new PointF(w, 0)).X, 2).ToString(), Font, Brushes.Black, new PointF(w, ClientSize.Height - 20));
             for (float h = ClientSize.Height / 10; h < ClientSize.Height; h += ClientSize.Height / 10)
                 g.DrawString(Math.Round(DataPoint(new PointF(0,h)).Y, 2).ToString(), Font, Brushes.Black, new PointF(10, h));
+			 * */
+
+			PointF axes_step_pt = new PointF(0, 0);
+			PointF axes_step_pt2 = new PointF(100, 50);
+			PointF axes_step = DataPoint(axes_step_pt);
+			PointF axes_step2 = DataPoint(axes_step_pt2);
+
+			float dx = axes_step2.X - axes_step.X;
+			float dy = axes_step2.Y - axes_step.Y;
+
+			int power = 10;
+
+			double lg_x = Math.Log(Math.Abs(dx), power);
+			double lg_y = Math.Log(Math.Abs(dy), power);
+
+			double pow_x = Math.Pow(power, Math.Floor(lg_x)+1);
+			double pow_y = Math.Pow(power, Math.Floor(lg_y)+1);
+
+			int step_x = (int)(pow_x/2);
+			if (step_x < 1) step_x = 1;
+			int step_y = (int)(pow_y/2);
+			if (step_y < 1) step_y = 1;
+
+			int x = 0;
+			PointF xp = ScreenPoint(new PointF(x, 0));
+			do
+			{
+				xp = ScreenPoint(new PointF(x, 0));
+				//g.DrawLine(Pens.Blue, xp.X, xp.Y, xp.X, xp.Y + 20);
+				g.DrawLine(Pens.Blue, xp.X, 0, xp.X, 10);
+				g.DrawLine(xGridPen, xp.X, 10, xp.X, ClientRectangle.Height);
+				g.DrawString(x.ToString(), smallFont, Brushes.Blue, xp.X, +10);
+				x += step_x;
+			} while (xp.X < ClientRectangle.Width);
+			
+			int y = 0;
+			PointF yp = ScreenPoint(new PointF(0, y));
+			do
+			{
+				yp = ScreenPoint(new PointF(0, y));
+				//g.DrawLine(Pens.Red, yp.X, yp.Y, yp.X-20, yp.Y);
+				g.DrawLine(Pens.Red, 0, yp.Y, 10, yp.Y);
+				g.DrawLine(yGridPen, 10, yp.Y, ClientRectangle.Width, yp.Y);
+				g.DrawString(y.ToString(), smallFont, Brushes.Red, 10, yp.Y);
+				y += step_y;
+			} while (yp.Y > 0);
 
             g.Transform = m;
 
@@ -232,44 +303,42 @@ namespace Ploter
             float deltaY = 500;
             switch (e.KeyCode)
             {
+				case Keys.Escape:
+					Close();
+					break;
+
                 case Keys.Left:
-                    {
-                        dx = -deltaX;
-                        break;
-                    }
+                    dx = -deltaX;
+                    break;
+                    
                 case Keys.Right:
-                    {
-                        dx = deltaX;
-                        break;
-                    }
+                    dx = deltaX;
+                    break;
+                    
                 case Keys.Up:
-                    {
-                        dy = deltaY;
-                        break;
-                    }
+                    dy = deltaY;
+                    break;
+                    
                 case Keys.Down:
-                    {
-                        dy = -deltaY;
-                        break;
-                    }
+                    dy = -deltaY;
+                    break;
+                    
                 case Keys.R:
-                    {
-                        m = new Matrix();
-                        //invert axis Y
-                        m.Scale(1, -1);
-                        m.Translate(0, -ClientSize.Height);
+                    m = new Matrix();
+                    //invert axis Y
+                    m.Scale(1, -1);
+                    m.Translate(0, -ClientSize.Height);
 
-                        //resizing for camera size
-                        m.Scale(ClientSize.Width / cam.width, ClientSize.Height / cam.height);
+                    //resizing for camera size
+                    m.Scale(ClientSize.Width / cam.width, ClientSize.Height / cam.height);
 
-                        Form1_MouseWheel(this, new MouseEventArgs(MouseButtons.None, 0, ClientSize.Width / 2, ClientSize.Height / 2, -1));
+                    Form1_MouseWheel(this, new MouseEventArgs(MouseButtons.None, 0, ClientSize.Width / 2, ClientSize.Height / 2, -1));
                     
 
-                        cam.drawW = DataPoint(new PointF(cam.rightP.X - cam.leftP.X, 0f)).X;
-                        cam.drawH = ClientSize.Height * m.Elements[4];
-                        cam.detectPointsToDraw();                        
-                        break;
-                    }
+                    cam.drawW = DataPoint(new PointF(cam.rightP.X - cam.leftP.X, 0f)).X;
+                    cam.drawH = ClientSize.Height * m.Elements[4];
+                    cam.detectPointsToDraw();                        
+                    break;                
             }
             cam.Move(dx, dy);
             m.Translate(-dx, -dy);
